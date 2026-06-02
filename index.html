@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Разработка БП</title>
+    <style>
+        :root {
+            --bg-deep: #06060d;
+            --neon-purple: #b44dff;
+            --neon-green: #39ff14;
+            --neon-cyan: #00f0ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-deep);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', 'Consolas', monospace;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+        }
+
+        /* ============ ФОНОВЫЕ СФЕРЫ (оптимизированные) ============ */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.5;
+            will-change: transform;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+        }
+        .bg-orb--purple {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #9b30ff 0%, #4a0e7e 50%, transparent 75%);
+            top: -10%;
+            left: -12%;
+            animation: floatOrb1 14s infinite;
+            filter: blur(70px);
+            opacity: 0.45;
+        }
+        .bg-orb--green {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, #39ff14 0%, #0f5e05 50%, transparent 75%);
+            bottom: -10%;
+            right: -8%;
+            animation: floatOrb2 16s infinite;
+            filter: blur(70px);
+            opacity: 0.4;
+        }
+        .bg-orb--magenta {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #ff2d95 0%, #7a0f40 50%, transparent 75%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: floatOrb3 18s infinite;
+            filter: blur(60px);
+            opacity: 0.35;
+        }
+        .bg-orb--cyan {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, #00f0ff 0%, #005f66 50%, transparent 75%);
+            top: 15%;
+            right: 12%;
+            animation: floatOrb4 15s infinite;
+            filter: blur(60px);
+            opacity: 0.35;
+        }
+        .bg-orb--violet {
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, #c77dff 0%, #531c8a 50%, transparent 75%);
+            bottom: 20%;
+            left: 15%;
+            animation: floatOrb5 17s infinite;
+            filter: blur(65px);
+            opacity: 0.4;
+        }
+
+        @keyframes floatOrb1 {
+            0%,100%{ transform: translate(0,0) scale(1); }
+            25%{ transform: translate(60px,40px) scale(1.1); }
+            50%{ transform: translate(-20px,70px) scale(0.9); }
+            75%{ transform: translate(40px,-15px) scale(1.05); }
+        }
+        @keyframes floatOrb2 {
+            0%,100%{ transform: translate(0,0) scale(1); }
+            25%{ transform: translate(-50px,-40px) scale(1.15); }
+            50%{ transform: translate(30px,-60px) scale(0.9); }
+            75%{ transform: translate(-40px,25px) scale(1.05); }
+        }
+        @keyframes floatOrb3 {
+            0%,100%{ transform: translate(-50%,-50%) scale(1); }
+            33%{ transform: translate(-45%,-60%) scale(1.1); }
+            66%{ transform: translate(-60%,-35%) scale(0.9); }
+        }
+        @keyframes floatOrb4 {
+            0%,100%{ transform: translate(0,0) scale(1); }
+            50%{ transform: translate(-50px,50px) scale(1.2); }
+        }
+        @keyframes floatOrb5 {
+            0%,100%{ transform: translate(0,0) scale(1); }
+            30%{ transform: translate(40px,-30px) scale(1.1); }
+            70%{ transform: translate(-30px,40px) scale(0.95); }
+        }
+
+        /* Сетка и шум – только на больших экранах (ПК) */
+        .grid-overlay, .noise-overlay, .scanlines {
+            display: none;
+        }
+        @media (min-width: 769px) {
+            .grid-overlay {
+                display: block;
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                z-index: 1;
+                opacity: 0.1;
+                background-image: radial-gradient(circle, #b44dff 1px, transparent 1px);
+                background-size: 40px 40px;
+                animation: gridShift 20s linear infinite;
+            }
+            .noise-overlay {
+                display: block;
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                z-index: 2;
+                opacity: 0.04;
+                mix-blend-mode: overlay;
+                background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+                background-size: 180px 180px;
+                animation: noiseShift 0.5s steps(3) infinite;
+            }
+            .scanlines {
+                display: block;
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                z-index: 3;
+                opacity: 0.05;
+                background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.4) 2px, rgba(0,0,0,0.4) 4px);
+            }
+            @keyframes gridShift {
+                0%{ background-position: 0 0; }
+                100%{ background-position: 40px 40px; }
+            }
+            @keyframes noiseShift {
+                0%{ background-position: 0 0; }
+                33%{ background-position: 30px 20px; }
+                66%{ background-position: -20px 40px; }
+                100%{ background-position: 10px -10px; }
+            }
+        }
+
+        /* Виньетка */
+        .vignette {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 4;
+            background: radial-gradient(ellipse at center, transparent 60%, rgba(6,6,13,0.5) 80%, rgba(6,6,13,0.9) 100%);
+        }
+
+        /* Основной контейнер */
+        .main-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            padding: 20px;
+        }
+
+        /* Кнопка и орбиты */
+        .button-wrapper {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .orbit-ring {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            border: 1.5px solid transparent;
+            animation: orbitSpin linear infinite;
+        }
+        .orbit-ring--1 {
+            width: 170px; height: 170px;
+            border-color: rgba(180,77,255,0.35);
+            animation-duration: 10s;
+            box-shadow: 0 0 15px rgba(180,77,255,0.15);
+        }
+        .orbit-ring--2 {
+            width: 210px; height: 210px;
+            border-color: rgba(57,255,20,0.3);
+            animation-duration: 14s;
+            animation-direction: reverse;
+            border-style: dashed;
+        }
+        .orbit-ring--3 {
+            width: 250px; height: 250px;
+            border-color: rgba(0,240,255,0.25);
+            animation-duration: 18s;
+            border-width: 1px;
+        }
+        .orbit-dot {
+            position: absolute;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: dotOrbit linear infinite;
+        }
+        .orbit-dot--purple {
+            background: #d480ff;
+            box-shadow: 0 0 8px #b44dff;
+            animation-duration: 10s;
+        }
+        .orbit-dot--green {
+            background: #7fff5f;
+            box-shadow: 0 0 8px #39ff14;
+            animation-duration: 14s;
+            animation-direction: reverse;
+        }
+        .orbit-dot--cyan {
+            background: #00f0ff;
+            box-shadow: 0 0 8px #00f0ff;
+            animation-duration: 18s;
+        }
+        @keyframes orbitSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes dotOrbit {
+            from { transform: rotate(0deg) translateX(85px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(85px) rotate(-360deg); }
+        }
+        .orbit-dot--green { animation-name: dotOrbitGreen; }
+        @keyframes dotOrbitGreen {
+            from { transform: rotate(0deg) translateX(105px) rotate(0deg); }
+            to { transform: rotate(-360deg) translateX(105px) rotate(360deg); }
+        }
+        .orbit-dot--cyan { animation-name: dotOrbitCyan; }
+        @keyframes dotOrbitCyan {
+            from { transform: rotate(0deg) translateX(125px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(125px) rotate(-360deg); }
+        }
+
+        /* Кнопка */
+        .glitch-btn {
+            position: relative;
+            width: 110px; height: 110px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #1a1a2e 0%, #0d0d1a 60%, #050510 100%);
+            border: 2px solid #b44dff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            transition: transform 0.2s ease;
+            box-shadow: 0 0 20px rgba(180,77,255,0.4), 0 0 50px rgba(180,77,255,0.15);
+            animation: btnPulse 3s ease-in-out infinite;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glitch-btn:active { transform: scale(0.94); transition: transform 0.1s; }
+        @keyframes btnPulse {
+            0%,100%{ box-shadow: 0 0 20px rgba(180,77,255,0.4), 0 0 50px rgba(180,77,255,0.15); }
+            50%{ box-shadow: 0 0 35px rgba(180,77,255,0.5), 0 0 70px rgba(57,255,20,0.2); }
+        }
+        .btn-text {
+            font-size: 60px;
+            font-weight: bold;
+            color: #e8d5ff;
+            text-shadow: 0 0 10px #b44dff, 0 0 30px #9b30ff;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .btn-glitch-layer {
+            position: absolute;
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 7;
+        }
+        .btn-glitch-layer--red {
+            color: #ff0044;
+            text-shadow: 0 0 10px #ff0044;
+            clip-path: inset(0 0 65% 0);
+        }
+        .btn-glitch-layer--cyan {
+            color: #00f0ff;
+            text-shadow: 0 0 10px #00f0ff;
+            clip-path: inset(35% 0 35% 0);
+        }
+
+        /* Сообщение */
+        .message-container {
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            pointer-events: none;
+        }
+        .message-container.revealed {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .message-text {
+            font-size: clamp(1rem, 2.2vw, 1.6rem);
+            font-weight: bold;
+            color: #e0d0ff;
+            letter-spacing: 0.05em;
+            padding: 16px 24px;
+            border: 1px solid rgba(180,77,255,0.35);
+            border-radius: 14px;
+            background: rgba(20,10,40,0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 0 25px rgba(180,77,255,0.15);
+            animation: textGlow 4s ease-in-out infinite;
+        }
+        @keyframes textGlow {
+            0%,100%{ text-shadow: 0 0 6px rgba(180,77,255,0.5), 0 0 20px rgba(180,77,255,0.3); border-color: rgba(180,77,255,0.35); }
+            50%{ text-shadow: 0 0 12px rgba(180,77,255,0.7), 0 0 30px rgba(57,255,20,0.4); border-color: rgba(57,255,20,0.5); }
+        }
+
+        /* Скобки */
+        .message-brackets {
+            position: absolute;
+            inset: -6px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.6s 0.2s;
+        }
+        .message-container.revealed .message-brackets { opacity: 0.6; }
+        .bracket {
+            position: absolute;
+            width: 24px; height: 24px;
+            border-color: rgba(57,255,20,0.6);
+            border-style: solid;
+            animation: bracketPulse 3s infinite;
+        }
+        .bracket--tl { top:0; left:0; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+        .bracket--tr { top:0; right:0; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+        .bracket--bl { bottom:0; left:0; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+        .bracket--br { bottom:0; right:0; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+        @keyframes bracketPulse {
+            0%,100%{ border-color: rgba(57,255,20,0.6); }
+            50%{ border-color: rgba(180,77,255,0.8); }
+        }
+
+        /* Вспышка */
+        .flash-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 50;
+            background: radial-gradient(circle, rgba(200,180,255,0.45) 0%, rgba(180,77,255,0.2) 50%, transparent 75%);
+            opacity: 0;
+            transition: opacity 0.08s;
+        }
+        .flash-overlay.active { opacity: 1; transition: opacity 0s; }
+
+        /* Глитч-оверлей */
+        .glitch-screen-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 45;
+            opacity: 0;
+            background: linear-gradient(0deg, transparent 0%, rgba(255,0,60,0.06) 20%, transparent 21%, transparent 40%, rgba(0,240,255,0.06) 41%, transparent 42%, transparent 65%, rgba(180,77,255,0.08) 66%, transparent 67%, transparent 85%, rgba(57,255,20,0.05) 86%, transparent 87%);
+            transition: opacity 0.05s;
+        }
+        .glitch-screen-overlay.active {
+            opacity: 1;
+            animation: glitchShake 0.25s ease-out;
+        }
+        @keyframes glitchShake {
+            0%{ transform: translate(0); opacity:0.8; }
+            20%{ transform: translate(-6px,3px); opacity:1; }
+            40%{ transform: translate(8px,-2px); opacity:0.7; }
+            60%{ transform: translate(-4px,5px); opacity:0.6; }
+            80%{ transform: translate(3px,-4px); opacity:0.3; }
+            100%{ transform: translate(0); opacity:0; }
+        }
+
+        /* Canvas частиц */
+        #particlesCanvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* ========== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ========== */
+        @media (max-width: 768px) {
+            .bg-orb { filter: blur(40px); }  /* уменьшаем размытие */
+            .bg-orb--purple { width: 260px; height: 260px; opacity: 0.4; }
+            .bg-orb--green { width: 230px; height: 230px; opacity: 0.35; }
+            .bg-orb--magenta { width: 200px; height: 200px; opacity: 0.3; }
+            .bg-orb--cyan { width: 180px; height: 180px; opacity: 0.3; }
+            .bg-orb--violet { width: 200px; height: 200px; opacity: 0.35; }
+            .button-wrapper { width: 150px; height: 150px; }
+            .glitch-btn { width: 90px; height: 90px; }
+            .btn-text { font-size: 46px; }
+            .btn-glitch-layer { font-size: 46px; }
+            .orbit-ring--1 { width: 140px; height: 140px; }
+            .orbit-ring--2 { width: 175px; height: 175px; }
+            .orbit-ring--3 { width: 210px; height: 210px; }
+            @keyframes dotOrbit {
+                from { transform: rotate(0deg) translateX(70px) rotate(0deg); }
+                to { transform: rotate(360deg) translateX(70px) rotate(-360deg); }
+            }
+            @keyframes dotOrbitGreen {
+                from { transform: rotate(0deg) translateX(87px) rotate(0deg); }
+                to { transform: rotate(-360deg) translateX(87px) rotate(360deg); }
+            }
+            @keyframes dotOrbitCyan {
+                from { transform: rotate(0deg) translateX(105px) rotate(0deg); }
+                to { transform: rotate(360deg) translateX(105px) rotate(-360deg); }
+            }
+            .message-text {
+                padding: 12px 18px;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                background: rgba(20,10,40,0.8);
+                font-size: 1rem;
+            }
+            .main-container { gap: 30px; }
+            .vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(6,6,13,0.7) 80%, rgba(6,6,13,0.95) 100%); }
+        }
+
+        /* Для очень маленьких экранов */
+        @media (max-width: 400px) {
+            .button-wrapper { width: 130px; height: 130px; }
+            .glitch-btn { width: 80px; height: 80px; }
+            .btn-text { font-size: 40px; }
+            .btn-glitch-layer { font-size: 40px; }
+            .orbit-ring--1 { width: 120px; height: 120px; }
+            .orbit-ring--2 { width: 150px; height: 150px; }
+            .orbit-ring--3 { width: 180px; height: 180px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-orb bg-orb--purple"></div>
+    <div class="bg-orb bg-orb--green"></div>
+    <div class="bg-orb bg-orb--magenta"></div>
+    <div class="bg-orb bg-orb--cyan"></div>
+    <div class="bg-orb bg-orb--violet"></div>
+    <div class="grid-overlay"></div>
+    <div class="noise-overlay"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    <canvas id="particlesCanvas"></canvas>
+    <div class="flash-overlay" id="flashOverlay"></div>
+    <div class="glitch-screen-overlay" id="glitchScreenOverlay"></div>
+
+    <main class="main-container">
+        <div class="button-wrapper">
+            <div class="orbit-ring orbit-ring--1"></div>
+            <div class="orbit-ring orbit-ring--2"></div>
+            <div class="orbit-ring orbit-ring--3"></div>
+            <div class="orbit-dot orbit-dot--purple"></div>
+            <div class="orbit-dot orbit-dot--green"></div>
+            <div class="orbit-dot orbit-dot--cyan"></div>
+            <button class="glitch-btn" id="questionBtn" aria-label="Раскрыть информацию">
+                <span class="btn-text">?</span>
+                <span class="btn-glitch-layer btn-glitch-layer--red">?</span>
+                <span class="btn-glitch-layer btn-glitch-layer--cyan">?</span>
+            </button>
+        </div>
+
+        <div class="message-container" id="messageContainer">
+            <div class="message-brackets">
+                <span class="bracket bracket--tl"></span>
+                <span class="bracket bracket--tr"></span>
+                <span class="bracket bracket--bl"></span>
+                <span class="bracket bracket--br"></span>
+            </div>
+            <p class="message-text">Разработка БП начнется после 20 июня</p>
+        </div>
+    </main>
+
+    <script>
+        (function() {
+            const questionBtn = document.getElementById('questionBtn');
+            const messageContainer = document.getElementById('messageContainer');
+            const flashOverlay = document.getElementById('flashOverlay');
+            const glitchScreenOverlay = document.getElementById('glitchScreenOverlay');
+            const btnGlitchRed = document.querySelector('.btn-glitch-layer--red');
+            const btnGlitchCyan = document.querySelector('.btn-glitch-layer--cyan');
+            const btnText = document.querySelector('.btn-text');
+            const messageText = document.querySelector('.message-text');
+            const orbitRings = document.querySelectorAll('.orbit-ring');
+
+            let isRevealed = false;
+            let glitchTimer = null;
+
+            // ========== Частицы (облегчённый движок) ==========
+            const canvas = document.getElementById('particlesCanvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            const isMobile = window.innerWidth < 769;
+            const particleCount = isMobile ? 35 : 70;
+            const colors = ['rgba(180,77,255,0.7)', 'rgba(57,255,20,0.6)', 'rgba(0,240,255,0.65)', 'rgba(255,45,149,0.55)'];
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            class Particle {
+                constructor() {
+                    this.reset();
+                    this.y = Math.random() * canvas.height;
+                }
+                reset() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = canvas.height + 20;
+                    this.size = Math.random() * 2.5 + 0.8;
+                    this.speedY = -0.3 - Math.random() * 0.4;
+                    this.speedX = (Math.random() - 0.5) * 0.3;
+                    this.opacity = Math.random() * 0.6 + 0.4;
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                }
+                update() {
+                    this.y += this.speedY;
+                    this.x += this.speedX;
+                    if (this.y < -20 || this.x < -20 || this.x > canvas.width+20) this.reset();
+                }
+                draw(ctx) {
+                    ctx.globalAlpha = this.opacity;
+                    ctx.fillStyle = this.color;
+                    ctx.shadowColor = this.color;
+                    ctx.shadowBlur = this.size * 3;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                for (let p of particles) {
+                    p.update();
+                    p.draw(ctx);
+                }
+                ctx.restore();
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            // ========== Эффекты ==========
+            function triggerFlash() {
+                flashOverlay.classList.add('active');
+                setTimeout(() => flashOverlay.classList.remove('active'), 100);
+            }
+
+            function triggerScreenGlitch() {
+                glitchScreenOverlay.classList.add('active');
+                setTimeout(() => glitchScreenOverlay.classList.remove('active'), 300);
+            }
+
+            function triggerButtonGlitch(duration = 350) {
+                btnGlitchRed.style.opacity = '1';
+                btnGlitchCyan.style.opacity = '1';
+                btnText.style.opacity = '0.4';
+                const steps = isMobile ? 3 : 5;
+                const stepTime = duration / steps;
+                for (let i = 0; i < steps; i++) {
+                    setTimeout(() => {
+                        const x1 = (Math.random()-0.5)*10, y1 = (Math.random()-0.5)*8;
+                        const x2 = (Math.random()-0.5)*10, y2 = (Math.random()-0.5)*8;
+                        btnGlitchRed.style.transform = `translate(${x1}px, ${y1}px)`;
+                        btnGlitchCyan.style.transform = `translate(${x2}px, ${y2}px)`;
+                        btnText.style.opacity = Math.random()*0.5+0.2;
+                        const clips = ['inset(0 0 70% 0)','inset(30% 0 40% 0)','inset(60% 0 10% 0)'];
+                        btnGlitchRed.style.clipPath = clips[i%3];
+                        btnGlitchCyan.style.clipPath = clips[(i+1)%3];
+                    }, i*stepTime);
+                }
+                setTimeout(() => {
+                    btnGlitchRed.style.opacity = '0';
+                    btnGlitchCyan.style.opacity = '0';
+                    btnGlitchRed.style.transform = 'translate(0,0)';
+                    btnGlitchCyan.style.transform = 'translate(0,0)';
+                    btnText.style.opacity = '1';
+                }, duration);
+            }
+
+            function triggerTextGlitch() {
+                const orig = messageText.textContent;
+                const glitchChars = '!@#$%^&*()_+-=[]{}|;:<>?/\\~`';
+                const steps = 5;
+                for (let s = 0; s < steps; s++) {
+                    setTimeout(() => {
+                        let corr = '';
+                        for (let i=0; i<orig.length; i++) {
+                            corr += Math.random()<0.3 ? glitchChars[Math.floor(Math.random()*glitchChars.length)] : orig[i];
+                        }
+                        messageText.textContent = corr;
+                        messageText.style.textShadow = `${(Math.random()-0.5)*6}px ${(Math.random()-0.5)*4}px 0 rgba(255,0,70,0.7)`;
+                    }, s*45);
+                }
+                setTimeout(() => {
+                    messageText.textContent = orig;
+                    messageText.style.textShadow = '';
+                }, steps*45+40);
+            }
+
+            // ========== Клик ==========
+            questionBtn.addEventListener('click', () => {
+                if (glitchTimer) clearTimeout(glitchTimer);
+                triggerFlash();
+                triggerScreenGlitch();
+                triggerButtonGlitch(350);
+                orbitRings.forEach(r => r.style.animationDuration = '2.5s');
+                setTimeout(() => orbitRings.forEach(r => r.style.animationDuration = ''), 500);
+
+                if (!isRevealed) {
+                    isRevealed = true;
+                    setTimeout(() => {
+                        messageContainer.classList.add('revealed');
+                        setTimeout(triggerTextGlitch, 200);
+                    }, 250);
+                } else {
+                    setTimeout(triggerTextGlitch, 150);
+                }
+
+                // Всплеск частиц
+                const rect = questionBtn.getBoundingClientRect();
+                const cx = rect.left + rect.width/2;
+                const cy = rect.top + rect.height/2;
+                for (let i=0; i<15; i++) {
+                    const angle = Math.random()*Math.PI*2;
+                    const speed = Math.random()*4+2;
+                    const p = new Particle();
+                    p.x = cx; p.y = cy;
+                    p.speedX = Math.cos(angle)*speed;
+                    p.speedY = Math.sin(angle)*speed;
+                    p.size = Math.random()*3+1.5;
+                    p.opacity = 1;
+                    p.color = ['rgba(255,255,255,0.8)','rgba(180,77,255,0.8)','rgba(57,255,20,0.8)'][Math.floor(Math.random()*3)];
+                    particles.push(p);
+                    if (particles.length > 120) particles.shift();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
